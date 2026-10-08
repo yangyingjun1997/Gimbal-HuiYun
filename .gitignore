@@ -1,0 +1,42 @@
+# ---- 依赖 ----
+node_modules/
+*.log
+
+# ---- 运行残留（不上传） ----
+logs/
+photos/
+recordings/
+reports/
+.gimbal-tester.conf
+.gimbal-tester.pid
+
+# ---- 大体积二进制（通过 Releases 分发，不入 git） ----
+tools/ffmpeg/
+tools/ffmpeg-release-essentials.zip
+*.exe
+*.pyz
+*.pkg
+*.zip
+*.tar.gz
+
+# ---- 构建产物 ----
+build/
+dist/
+__pycache__/
+*.pyc
+*.pyo
+*.toc
+
+# ---- 系统/编辑器 ----
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.user
+
+# ---- 环境变量/密钥 ----
+.env
+.env.local
+*.pem
+*.key

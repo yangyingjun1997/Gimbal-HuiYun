@@ -1,0 +1,14 @@
+{
+  "name": "hy-dz230f-web-gimbal-tester",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Web tester for HY-DZ230F gimbal UDP MavLink control and RTSP checks.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node ./src/server.js",
+    "report": "node ./src/report.js"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

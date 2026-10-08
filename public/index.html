@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HY 云台巡检控制台</title>
+  <link rel="stylesheet" href="styles.css?v=20260923a" />
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <header class="app-header">
+      <div class="brand-block">
+        <span class="brand-mark">HY</span>
+        <div>
+          <h1>云台巡检控制台</h1>
+          <p>HY-DZ230F 三轴稳像吊舱</p>
+        </div>
+      </div>
+      <div class="header-status">
+        <span id="connectionPill" class="status-pill"><span class="dot"></span><span class="status-text">未连接</span></span>
+        <span class="header-metric">设备 <b id="deviceIpDisplay">--</b></span>
+        <span class="header-metric">接收 <b id="rxMetric">0</b></span>
+        <span class="header-metric">发送 <b id="txMetric">0</b></span>
+        <span class="header-metric muted">版本 <b id="appVersion">--</b></span>
+      </div>
+      <nav class="header-actions" aria-label="工具">
+        <button id="mediaToggle" class="icon-command" title="媒体文件">媒体</button>
+        <button id="diagnosticsToggle" class="icon-command" title="维护诊断">诊断</button>
+        <button id="settingsToggle" class="icon-command" title="设备设置">设置</button>
+        <button id="emergencyBtn" class="emergency-command emergency" title="立即停止云台和变焦">紧急停止</button>
+      </nav>
+    </header>
+
+    <section class="pose-strip" aria-label="常用位姿">
+      <div class="pose-strip-heading">
+        <div class="pose-live-title">
+          <span class="section-kicker">实时姿态</span>
+          <span id="poseStatusText" class="pose-mode-state">等待设备回包</span>
+        </div>
+        <div class="pose-live-metrics">
+          <div class="pose-live-primary"><span>俯仰 P</span><strong><b id="poseCurrentPitch">--</b><em>°</em></strong></div>
+          <div class="pose-live-primary"><span>偏航 Y</span><strong><b id="poseCurrentYaw">--</b><em>°</em></strong></div>
+          <div><span>测距</span><strong id="laserReport">--</strong></div>
+          <div><span>温度</span><strong id="tempReport">--</strong></div>
+        </div>
+      </div>
+      <div id="poseGrid" class="pose-grid"></div>
+      <div class="pose-strip-actions">
+        <button id="startCruiseBtn" class="btn primary">开始巡航</button>
+        <button id="stopCruiseBtn" class="btn">停止巡航</button>
+        <details class="pose-options-menu">
+          <summary title="位姿选项">位姿选项</summary>
+          <div class="pose-options">
+            <label><input id="poseSaveSwapAxes" type="checkbox" checked /> 保存时对调 Pitch/Yaw</label>
+            <label><input id="poseGotoSwapAxes" type="checkbox" checked /> 前往旧位姿时对调</label>
+            <label><input id="poseCenterFirst" type="checkbox" checked /> 前往前先回中</label>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <main class="workspace">
+      <section class="video-stack" aria-label="实时视频">
+        <article class="stream-panel visible-stream">
+          <header class="stream-header">
+            <div>
+              <span class="stream-dot visible-dot"></span>
+              <strong>可见光</strong>
+              <span class="stream-meta">RTSP 主码流</span>
+            </div>
+            <div class="stream-actions">
+              <button id="visibleOpen" class="btn sm primary">打开</button>
+              <button id="visibleClose" class="btn sm">关闭</button>
+              <button id="photoBtn" class="btn sm">本地截图</button>
+              <button id="recordBtn" class="btn sm record-action">本地录像</button>
+            </div>
+          </header>
+          <div class="video-wrap">
+            <img id="visiblePreview" class="video-img" alt="可见光实时画面" />
+            <div id="visibleHint" class="video-hint">可见光预览未打开</div>
+            <div class="video-overlay"><span id="visibleOverlayStatus">待机</span></div>
+          </div>
+        </article>
+
+        <article class="stream-panel thermal-stream">
+          <header class="stream-header">
+            <div>
+              <span class="stream-dot thermal-dot"></span>
+              <strong>热成像</strong>
+              <span class="stream-meta">红外通道</span>
+            </div>
+            <div class="stream-actions">
+              <button id="thermalOpen" class="btn sm primary">打开</button>
+              <button id="thermalClose" class="btn sm">关闭</button>
+              <button id="thermalPhotoBtn" class="btn sm">本地截图</button>
+              <button id="thermalRecordBtn" class="btn sm record-action">本地录像</button>
+            </div>
+          </header>
+          <div class="video-wrap">
+            <img id="thermalPreview" class="video-img" alt="热成像实时画面" />
+            <div id="thermalHint" class="video-hint">热成像预览未打开</div>
+            <div class="video-overlay"><span id="thermalOverlayStatus">待机</span></div>
+          </div>
+        </article>
+        <section class="video-status-panel" aria-label="相机实时状态">
+          <div><span class="section-kicker">相机状态</span><strong>实时参数</strong></div>
+          <div id="cameraStatus" class="camera-status-list"><span>暂无相机状态</span></div>
+        </section>
+        <section class="video-status-panel ir-status-panel" aria-label="红外测温状态">
+          <div><span class="section-kicker">红外测温</span><strong>HY_IR_CAMERA_STATUS</strong></div>
+          <div id="irStatusCard" class="ir-status-card"><div class="ir-empty">暂无红外状态回包</div></div>
+        </section>
+      </section>
+
+      <aside class="control-rail" aria-label="云台和相机控制">
+        <div id="configNotice" class="config-notice idle" role="status" aria-live="polite">
+          <span class="dot"></span><span id="configNoticeText">相机配置：等待操作</span>
+        </div>
+        <section class="control-section motion-section">
+          <div class="section-heading">
+            <div><span class="section-kicker">云台控制</span><strong>方向与速度</strong></div>
+            <span id="gimbalModeBadge" class="quiet-badge">--</span>
+          </div>
+          <div class="motion-layout">
+            <div class="dpad" aria-label="八方向控制">
+              <button class="dir-btn" data-jog="northwest" title="左上">↖</button>
+              <button class="dir-btn" data-jog="up" title="向上">↑</button>
+              <button class="dir-btn" data-jog="northeast" title="右上">↗</button>
+              <button class="dir-btn" data-jog="left" title="向左">←</button>
+              <button id="centerBtn" class="dir-btn dpad-center" title="云台回中">回中</button>
+              <button class="dir-btn" data-jog="right" title="向右">→</button>
+              <button class="dir-btn" data-jog="southwest" title="左下">↙</button>
+              <button class="dir-btn" data-jog="down" title="向下">↓</button>
+              <button class="dir-btn" data-jog="southeast" title="右下">↘</button>
+            </div>
+            <div class="motion-side">
+              <div class="speed-options" aria-label="速度档位">
+                <button type="button" class="speed-btn" data-speed="3">低速</button>
+                <button type="button" class="speed-btn active" data-speed="8">常速</button>
+                <button type="button" class="speed-btn" data-speed="20">高速</button>
+              </div>
+              <div class="tune-grid">
+                <button class="tune-btn" data-tune="pitch-up">俯仰 +0.5°</button>
+                <button class="tune-btn" data-tune="pitch-down">俯仰 -0.5°</button>
+                <button class="tune-btn" data-tune="yaw-left">偏航 -0.5°</button>
+                <button class="tune-btn" data-tune="yaw-right">偏航 +0.5°</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="control-section zoom-section">
+          <div class="section-heading">
+            <div><span class="section-kicker">光学变焦</span><strong>当前 <span id="zoomReadout">--</span>x</strong></div>
+            <button id="zoomStopBtn" class="btn sm stop-command">停止</button>
+          </div>
+          <div class="zoom-controls">
+            <button id="zoomOutBtn" class="zoom-command" title="持续缩小">−</button>
+            <input id="zoomValue" type="number" min="1" max="127" value="1" aria-label="目标变焦倍数" />
+            <button id="zoomSetBtn" class="btn">转到倍数</button>
+            <button id="zoomInBtn" class="zoom-command" title="持续放大">＋</button>
+          </div>
+        </section>
+
+        <section class="control-section capture-section">
+          <div class="section-heading">
+            <div><span class="section-kicker">设备存储</span><strong>SD 卡拍摄</strong></div>
+            <span id="sdCapacityCompact" class="quiet-badge">容量 --</span>
+          </div>
+          <div class="capture-actions">
+            <button id="devicePhotoBtn" class="btn primary">设备拍照</button>
+            <button id="deviceRecordStartBtn" class="btn record-action">开始设备录像</button>
+            <button id="deviceRecordStopBtn" class="btn">停止设备录像</button>
+          </div>
+        </section>
+
+        <section class="control-section quick-camera-section">
+          <div class="section-heading">
+            <div><span class="section-kicker">常用相机功能</span><strong>图像增强</strong></div>
+          </div>
+          <div class="quick-controls btn-grid">
+            <button data-cfg-type="4" data-cfg-value="2">镜像翻转</button>
+            <button data-cfg-type="4" data-cfg-value="0">镜像关闭</button>
+            <button data-cfg-type="14" data-cfg-value="1">防抖开启</button>
+            <button data-cfg-type="14" data-cfg-value="2">防抖关闭</button>
+            <button data-cfg-type="15" data-cfg-value="1">透雾开启</button>
+            <button data-cfg-type="15" data-cfg-value="2">透雾关闭</button>
+            <button data-cfg-type="23" data-cfg-value="0">日夜自动</button>
+            <button data-cfg-type="12" data-cfg-value="3">自动对焦</button>
+          </div>
+        </section>
+
+      </aside>
+    </main>
+
+    <div id="drawerBackdrop" class="drawer-backdrop"></div>
+
+    <aside id="settingsDrawer" class="drawer" aria-label="设备设置">
+      <header class="drawer-header"><div><span class="section-kicker">配置</span><h2>设备设置</h2></div><button class="drawer-close" data-close-drawer title="关闭">×</button></header>
+      <div class="drawer-body">
+        <section class="settings-section">
+          <h3>连接</h3>
+          <div class="form-grid">
+            <label>设备 IP<input id="deviceIp" type="text" value="192.168.124.64" /></label>
+            <label>控制端口<input id="controlPort" type="number" value="3000" min="1" max="65535" /></label>
+            <label>本地监听<input id="localPort" type="number" value="3000" min="1" max="65535" /></label>
+            <label>Camera CRC Extra<select id="cameraConfigCrcExtra"><option value="164">164（厂家 SDK）</option><option value="167">167（对照）</option></select></label>
+          </div>
+          <div class="action-row"><button id="connectBtn" class="btn primary">连接设备</button><button id="disconnectBtn" class="btn">断开连接</button></div>
+        </section>
+
+        <section class="settings-section">
+          <h3>网络配置 <span class="section-hint">（设备 IP / 掩码 / 网关）</span></h3>
+          <div class="form-grid">
+            <label>设备 IP<input id="netCfgIp" type="text" placeholder="192.168.124.64" /></label>
+            <label>子网掩码<input id="netCfgNetmask" type="text" placeholder="255.255.255.0" /></label>
+            <label>网关<input id="netCfgGateway" type="text" placeholder="192.168.124.1" /></label>
+            <label>生效方式<select id="netCfgApply"><option value="1">立即生效</option><option value="0">仅保存（重启后生效）</option></select></label>
+          </div>
+          <div class="action-row">
+            <button id="netCfgQueryBtn" class="btn">查询当前配置</button>
+            <button id="netCfgSetBtn" class="btn primary">应用网络配置</button>
+          </div>
+          <div id="netCfgCurrent" class="netcfg-current">尚未获取设备网络配置</div>
+        </section>
+
+        <section class="settings-section">
+          <h3>精确角度</h3>
+          <div class="angle-row">
+            <label>俯仰角<input id="pitchAngle" type="number" value="0" step="0.1" /></label>
+            <label>偏航角<input id="yawAngle" type="number" value="0" step="0.1" /></label>
+            <button id="gotoAngleBtn" class="btn primary">转到角度</button>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <h3>云台模式</h3>
+          <div class="mode-grid">
+            <button class="mode-btn" data-mode="1">主动跟随<small>跟随载体姿态</small></button>
+            <button class="mode-btn" data-mode="2">主动全局<small>保持全局水平</small></button>
+            <button class="mode-btn" data-mode="3">直立跟随<small>直立跟随模式</small></button>
+            <button class="mode-btn" data-mode="4">直立全局<small>直立全局模式</small></button>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <h3>相机高级设置</h3>
+          <div class="camera-groups">
+            <div class="camera-group"><h4>图像控制</h4><div class="btn-grid" id="imgCameraButtons"></div></div>
+            <div class="camera-group"><h4>录像与编码</h4><div class="btn-grid" id="recCameraButtons"></div></div>
+            <div class="camera-group"><h4>增强功能</h4><div class="btn-grid" id="enhCameraButtons"></div></div>
+            <div class="camera-group"><h4>红外与网络</h4><div class="btn-grid" id="advCameraButtons"></div></div>
+          </div>
+        </section>
+
+        <section class="settings-section danger-zone">
+          <h3>设备维护</h3>
+          <div class="action-row"><button id="versionBtn" class="btn">查询版本</button><button id="channelBtn" class="btn">查询通道</button><button id="caliBtn" class="btn">校准反馈</button><button id="rebootBtn" class="btn danger">重启云台</button></div>
+        </section>
+      </div>
+    </aside>
+
+    <aside id="mediaDrawer" class="drawer wide-drawer" aria-label="媒体文件">
+      <header class="drawer-header"><div><span class="section-kicker">存储</span><h2>媒体文件</h2></div><button class="drawer-close" data-close-drawer title="关闭">×</button></header>
+      <div class="drawer-body">
+        <section class="storage-summary">
+          <div><span>设备存储</span><strong id="sdStorageName">SD 卡</strong></div>
+          <div><span>可用容量</span><strong id="sdAvailable">--</strong></div>
+          <div><span>已用容量</span><strong id="sdUsed">--</strong></div>
+          <div><span>设备录像</span><strong id="deviceRecordingState">--</strong></div>
+        </section>
+        <div class="media-toolbar"><div><h3>本地媒体</h3><p id="mediaPathText">加载中</p></div><button id="refreshMediaBtn" class="btn">刷新</button></div>
+        <div id="mediaList" class="media-list"><div class="empty-state">暂无本地媒体文件</div></div>
+      </div>
+    </aside>
+
+    <aside id="diagnosticsDrawer" class="drawer diagnostics-drawer" aria-label="维护诊断">
+      <header class="drawer-header"><div><span class="section-kicker">维护</span><h2>诊断与测试</h2></div><button class="drawer-close" data-close-drawer title="关闭">×</button></header>
+      <div class="drawer-body">
+        <section class="diagnostic-summary">
+          <div><strong>完整巡检接入测试</strong><span>运行控制、状态和链路检查并生成报告</span></div>
+          <button id="testAllBtn" class="btn primary">执行完整测试</button>
+        </section>
+
+        <section class="panel debug-panel">
+          <div class="panel-title"><span>协议工具</span><span class="tab-nav debug-tabs"><button class="tab-btn active" data-debugtab="frames">原始帧</button><button class="tab-btn" data-debugtab="cambits">状态位</button><button class="tab-btn" data-debugtab="send">原始发送</button></span></div>
+          <div class="panel-body">
+            <div class="tab-content active" id="debugtab-frames">
+              <div class="action-row compact"><button id="refreshFramesBtn" class="btn sm">刷新</button><button id="clearFramesBtn" class="btn sm">清空</button><label class="inline-field">筛选<select id="frameFilter"><option value="all">全部</option><option value="camera">相机</option><option value="gimbal">云台</option><option value="tx">仅 TX</option><option value="rx">仅 RX</option></select></label></div>
+              <div id="rawFramesBox" class="raw-frames">暂无原始帧</div>
+            </div>
+            <div class="tab-content" id="debugtab-cambits">
+              <div class="bitfield-header"><div class="raw-value-title">HY_CAMERA_REPORT <code id="camReportRaw">0x--------</code></div><div id="camReportUpdate" class="raw-value-sub">尚未收到回包</div></div>
+              <div id="camBitGrid" class="bitfield-grid"></div>
+              <div class="gimbal-debug"><div>P <span id="gimBPitch">--</span>°</div><div>Y <span id="gimBYaw">--</span>°</div><div>测距 <span id="gimBLaser">--</span>m</div><div>温度 <span id="gimBTemp">--</span>°C</div><div>状态 <span id="gimBStatus">--</span></div></div>
+            </div>
+            <div class="tab-content" id="debugtab-send">
+              <div class="debug-form">
+                <label>config_type<input id="debugConfigType" type="number" value="14" /></label><label>cmd_value<input id="debugCmdValue" type="number" value="1" /></label><button id="debugSendCameraBtn" class="btn primary">发送相机配置</button><button id="debugSendCamera5xBtn" class="btn">连发 5 次</button>
+                <label>模式<select id="debugGimbalMode"><option value="angle">角度</option><option value="rate">速率</option></select></label><label>Pitch<input id="debugGimbalP" type="number" value="0" step="0.1" /></label><label>Yaw<input id="debugGimbalY" type="number" value="0" step="0.1" /></label><button id="debugSendGimbalBtn" class="btn">发送云台控制</button>
+                <label class="full-field">完整 MAVLink2 HEX<input id="debugRawHex" type="text" /></label><button id="debugSendRawBtn" class="btn">发送 HEX</button><button id="debugConnBtn" class="btn">发送连接请求</button><button id="debugPdfSampleBtn" class="btn">发送停止样例</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel log-panel">
+          <div class="panel-title"><span>运行日志</span><button id="clearLogBtn" class="btn sm">清空显示</button></div>
+          <div class="panel-body"><div id="logBox" class="log-box"></div></div>
+        </section>
+      </div>
+    </aside>
+
+    <div id="toasts" class="toasts"></div>
+  </div>
+  <script src="app.js?v=20260923a"></script>
+</body>
+</html>

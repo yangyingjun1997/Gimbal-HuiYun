@@ -1,0 +1,40 @@
+MIT License
+
+Copyright (c) 2026 HY Gimbal Tester Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+=============================================================================
+第三方组件许可说明
+=============================================================================
+
+本工具在运行时会调用以下第三方组件，它们各自的许可独立于本项目：
+
+1. FFmpeg（视频预览 / 拍照 / 录像功能）
+   - 许可：LGPL v2.1+ / GPL v2+（取决于构建配置）
+   - 本仓库【不包含】 FFmpeg 二进制；Windows 用户首次运行
+     install-ffmpeg-win.ps1 时从 ffmpeg.org 官方源自动下载，
+     Ubuntu 用户由 start-ubuntu.sh 通过系统包管理器安装。
+   - 若你随软件分发了 FFmpeg 二进制，需自行遵守其 LGPL/GPL 条款
+     （提供对应源码获取方式、保留版权声明等）。
+   - 官网：https://ffmpeg.org/legal.html
+
+2. 汇云机器人 MAVLink 自定义消息 SDK（vendor/hy_gimbal.py）
+   - 由设备厂商提供，仅用于与其设备通信。
+   - 其权利归原厂商所有，使用前请确认你拥有该设备 SDK 的使用授权。
